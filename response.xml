@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ListAllMyBucketsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+	<Owner>
+		<ID>e13790e10cede755f8bb98ae3db80360bbc01be9110715ddf5cc318980f596b9</ID>
+		<DisplayName>ce</DisplayName>
+	</Owner>
+	<Buckets>
+		<Bucket>
+			<Name>fap-joe</Name>
+			<CreationDate>2009-12-09T20:55:31.000Z</CreationDate>
+		</Bucket>
+		<Bucket>
+			<Name>fap-other</Name>
+			<CreationDate>2009-12-09T20:55:41.000Z</CreationDate>
+		</Bucket>
+		<Bucket>
+			<Name>fap-test</Name>
+			<CreationDate>2009-12-09T20:55:36.000Z</CreationDate>
+		</Bucket>
+	</Buckets>
+</ListAllMyBucketsResult>
