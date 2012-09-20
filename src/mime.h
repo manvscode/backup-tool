@@ -8,11 +8,6 @@
 #endif
 #include "vector.h"
 
-typedef struct tagMimeRecord {
-	char *mime_type;
-	char *extension;
-} MimeRecord;
-
 typedef vector MimeTable; /* table of mime records */
 
 boolean     mime_create           ( MimeTable *p_table );
@@ -20,7 +15,6 @@ boolean     mime_create_from_file ( MimeTable *p_table, const char *s_mime_file 
 void        mime_destroy          ( MimeTable *p_table );
 void        mime_debug_table      ( const MimeTable *p_table );
 const char* mime_type             ( const MimeTable *p_table, const char *extension );
-int         mime_record_compare   ( const void *a, const void *b );
 
 
 

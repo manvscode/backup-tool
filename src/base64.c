@@ -8,12 +8,11 @@
 #include "base64.h"
 
 /* caller is responsible for freeing the memory. */
-byte *base64(const byte *input, size_t length) {
-	// ---- VAR ----
+byte *base64( const byte *input, size_t length )
+{
 	BIO *bmem, *b64;
 	BUF_MEM *bptr;
 
-	// ---- CODE ----
 	b64 = BIO_new(BIO_f_base64());
 
 	bmem = BIO_new(BIO_s_mem());
@@ -33,11 +32,10 @@ byte *base64(const byte *input, size_t length) {
 
 
 /* caller is responsible for freeing the memory. */
-byte *unbase64(byte *input, size_t length) {
-	// ---- VAR ----
+byte *unbase64( byte *input, size_t length )
+{
 	BIO *b64, *bmem;
 
-	// ---- CODE ----
 	byte *buffer = (byte *)malloc(length);
 	memset(buffer, 0, length);
 
@@ -56,12 +54,11 @@ byte *unbase64(byte *input, size_t length) {
 }
 
 #ifdef _TEST_BASE64
-void test_base64( const char *text, size_t length ) {
-	// ---- VAR ----
+void test_base64( const char *text, size_t length )
+{
 	byte *output;
 	byte *original;
 
-	// ---- CODE ----
 	output = base64( (byte *) text, length );
 	printf( " Base64: %s\n", output );
 	original = unbase64( output, strlen(output) );

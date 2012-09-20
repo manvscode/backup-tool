@@ -6,6 +6,13 @@
 #include "mime.h"
 
 
+typedef struct tagMimeRecord {
+	char *mime_type;
+	char *extension;
+} MimeRecord;
+
+int mime_record_compare( const void *a, const void *b );
+
 /*
  * String helpers
  */
@@ -17,13 +24,14 @@ int mime_record_destroy( void *element );
 
 
 
-boolean mime_create( MimeTable *p_table ) {
+boolean mime_create( MimeTable *p_table )
+{
 	assert( p_table );
 	return mime_create_from_file( p_table, "/etc/mime.types" );
 }
 
-boolean mime_create_from_file( MimeTable *p_table, const char *s_mime_file ) {
-
+boolean mime_create_from_file( MimeTable *p_table, const char *s_mime_file )
+{
 	char buffer[ 128 ];
 	FILE *f = NULL;
 
@@ -31,14 +39,15 @@ boolean mime_create_from_file( MimeTable *p_table, const char *s_mime_file ) {
 
 	vector_create( p_table, sizeof(MimeRecord), mime_record_destroy );
 
-
 	f = fopen( s_mime_file, "rb" );
 
-	if( !f ) {
+	if( !f )
+	{
 		return FALSE;
 	}
 
-	while( !feof(f) ) {
+	while( !feof(f) )
+	{
 		fgets( buffer, sizeof(buffer), f );	
 
 		char *trimmed = strtrim_right( strtrim_left( buffer ) );
@@ -49,11 +58,14 @@ boolean mime_create_from_file( MimeTable *p_table, const char *s_mime_file ) {
 		char *mime_type = NULL;	
 		char *token     = strtok( buffer, "\t\n\r " );
 
-		while( token ) {
-			if( token_count == 0 ) {
+		while( token )
+		{
+			if( token_count == 0 )
+			{
 				mime_type = token;	
 			}
-			else {
+			else
+			{
 				MimeRecord record;
 
 				record.mime_type = strdup( mime_type );
@@ -73,11 +85,13 @@ boolean mime_create_from_file( MimeTable *p_table, const char *s_mime_file ) {
 	return TRUE;	
 }
 
-void mime_destroy( MimeTable *p_table ) {
+void mime_destroy( MimeTable *p_table )
+{
 	vector_destroy( p_table );
 }
 
-int mime_record_destroy( void *element ) {
+int mime_record_destroy( void *element )
+{
 	assert( element );
 
 	MimeRecord *p_record = (MimeRecord *) element;
@@ -86,11 +100,13 @@ int mime_record_destroy( void *element ) {
 	return 1;
 }
 
-void mime_debug_table( const MimeTable *p_table ) {
+void mime_debug_table( const MimeTable *p_table )
+{
 	int i;
 	assert( p_table );
 
-	for( i = 0; i < vector_size(p_table); i++ ) {
+	for( i = 0; i < vector_size(p_table); i++ )
+	{
 		MimeRecord *p_record = (MimeRecord *) vector_element_at( p_table, i );
 		printf( "%20s --> %s\n", p_record->extension, p_record->mime_type );
 	}
@@ -99,7 +115,8 @@ void mime_debug_table( const MimeTable *p_table ) {
 	printf( "                   # of records: %u\n", vector_size(p_table) );
 }
 
-const char *mime_type( const MimeTable *p_table, const char *extension ) {
+const char *mime_type( const MimeTable *p_table, const char *extension )
+{
 	MimeRecord key;
 	MimeRecord *p_record = NULL;
 
@@ -111,7 +128,8 @@ const char *mime_type( const MimeTable *p_table, const char *extension ) {
 	return p_record ? (const char *) p_record->mime_type : NULL;
 }
 
-int mime_record_compare( const void *a, const void *b ) {
+int mime_record_compare( const void *a, const void *b )
+{
 	assert( a && b );
 	return strcasecmp( ((MimeRecord*) a)->extension, ((MimeRecord*) b)->extension );
 }
@@ -120,14 +138,18 @@ int mime_record_compare( const void *a, const void *b ) {
 /*
  * String helpers
  */
-char *strtrim_left( char *string ) {
+char *strtrim_left( char *string )
+{
 	char *first_char = string;
 
-	while( *first_char ) {
-		if( isspace( *first_char) ) {
+	while( *first_char )
+	{
+		if( isspace( *first_char) )
+		{
 			first_char++;
 		}
-		else {
+		else
+		{
 			break;
 		}
 	}
@@ -135,17 +157,21 @@ char *strtrim_left( char *string ) {
 	return first_char;
 } 
 
-char *strtrim_right( char *string ) {
+char *strtrim_right( char *string )
+{
     int len = strlen( string );
     char *end;
 
-    while ( *string && len) {
+    while ( *string && len)
+	{
         end = string + len - 1;
 
-        if( isspace(*end) ) {
+        if( isspace(*end) )
+		{
             *end = 0;
 		}
-        else {
+        else
+		{
             break;
 		}
 

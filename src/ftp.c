@@ -5,8 +5,8 @@
 
 #define FTP_USERAGENT   "Shrewd LLC/FTP"
 
-boolean ftp_upload( CURL *p_curl, const char *s_hostname, const char *s_username, const char *s_password, const char *s_path, const char *s_filename ) {
-	// ---- VAR ----
+boolean ftp_upload( CURL *p_curl, const char *s_hostname, const char *s_username, const char *s_password, const char *s_path, const char *s_filename )
+{
 	char curl_err[ CURL_ERROR_SIZE ];
 	char buffer[ 1024 ];
 	struct curl_slist *headerlist = NULL;
@@ -14,7 +14,6 @@ boolean ftp_upload( CURL *p_curl, const char *s_hostname, const char *s_username
 	CURLcode res                  = 0;
 	boolean b_result              = TRUE;
 
-	// ---- CODE ----
 	assert( p_curl );
 	assert( s_hostname );
 	assert( s_filename );
@@ -22,14 +21,16 @@ boolean ftp_upload( CURL *p_curl, const char *s_hostname, const char *s_username
 	/* open file */
 	fd_tmp = fopen( s_filename, "rb" );
 
-	if( !fd_tmp ) {
+	if( !fd_tmp )
+	{
 		b_result = FALSE;
 		fprintf( stderr, "Cannot open file\n" );
 	}
 
 	/* prepare url */
 
-	if( b_result ) {
+	if( b_result )
+	{
 		#ifdef _NO_FILE_STDIO_STREAM
 			curl_easy_setopt( p_curl, CURLOPT_READDATA, fd_tmp ); /* I had no stdio_stream in my FILE structure */
 		#else
@@ -44,19 +45,27 @@ boolean ftp_upload( CURL *p_curl, const char *s_hostname, const char *s_username
 		{
 			char *s_filename_basename = strrchr( s_filename, '/' ) + 1;//basename( s_filename ); //use the gnu version
 
-			if( s_username ) {
+			if( s_username )
+			{
 				assert( s_password );
 
-				if( s_path ) {
+				if( s_path )
+				{
 					snprintf( buffer, sizeof(buffer), "ftp://%.64s:%.64s@%.128s/%s/%s", s_username, s_password, s_hostname, s_path, s_filename_basename );
-				} else {
+				}
+				else
+				{
 					snprintf( buffer, sizeof(buffer), "ftp://%.64s:%.64s@%.128s/%s", s_username, s_password, s_hostname, s_filename_basename );
 				}
 			}
-			else {
-				if( s_path ) {
+			else
+			{
+				if( s_path )
+				{
 					snprintf( buffer, sizeof(buffer), "ftp://%.128s/%s/%s", s_hostname, s_path, s_filename_basename );
-				} else {
+				}
+				else
+				{
 					snprintf( buffer, sizeof(buffer), "ftp://%.128s/%s", s_hostname, s_filename_basename );
 				}
 			}
@@ -84,7 +93,8 @@ boolean ftp_upload( CURL *p_curl, const char *s_hostname, const char *s_username
 		headerlist = NULL;
 		#endif
 
-		if( res != 0 ) {
+		if( res != 0 )
+		{
 			b_result = FALSE;
 			fprintf( stderr, "%s:%d: Error performing curl request (host = %.128s res = %d, err = %.1024s).\n", __FUNCTION__, __LINE__, (s_hostname ? s_hostname : "<null>"), res, curl_err );			
 		}	
@@ -93,8 +103,8 @@ boolean ftp_upload( CURL *p_curl, const char *s_hostname, const char *s_username
 	return b_result;
 }
 
-boolean ftp_delete( CURL *p_curl, const char *s_hostname, const char *s_username, const char *s_password, const char *s_filepath ) {
-	// ---- VAR ----
+boolean ftp_delete( CURL *p_curl, const char *s_hostname, const char *s_username, const char *s_password, const char *s_filepath )
+{
 	char curl_err[ CURL_ERROR_SIZE ];
 	char buffer[ 1024 ];
 	struct curl_slist *headerlist = NULL;
@@ -102,9 +112,8 @@ boolean ftp_delete( CURL *p_curl, const char *s_hostname, const char *s_username
 	FILE *fd_tmp                  = NULL;
 	boolean b_result              = TRUE;
 
-	// ---- CODE ----
-
-	if( b_result /*ec == 0*/ ) {
+	if( b_result /*ec == 0*/ )
+	{
 		/* open dummy file */
 		fd_tmp = fopen("/dev/null", "wb");		/* do dummy download/list into devnull */
 
@@ -121,11 +130,13 @@ boolean ftp_delete( CURL *p_curl, const char *s_hostname, const char *s_username
 
 		/* build URL */
 		{
-			if( s_username ) {
+			if( s_username )
+			{
 				assert( s_password );
 				snprintf( buffer, sizeof(buffer), "ftp://%.64s:%.64s@%.128s/", s_username, s_password, s_hostname );
 			}
-			else {
+			else
+			{
 				snprintf( buffer, sizeof(buffer), "ftp://%.128s/", s_hostname );
 			}
 
@@ -136,9 +147,12 @@ boolean ftp_delete( CURL *p_curl, const char *s_hostname, const char *s_username
 		{
 			/* build and add delete header */
 			{
-				if( *s_filepath == '/' ) {
+				if( *s_filepath == '/' )
+				{
 					snprintf( buffer,	sizeof(buffer), "DELE /%s", s_filepath );
-				} else {
+				}
+				else
+				{
 					snprintf( buffer,	sizeof(buffer), "DELE %s", s_filepath );
 				}
 
@@ -157,7 +171,8 @@ boolean ftp_delete( CURL *p_curl, const char *s_hostname, const char *s_username
 		headerlist = NULL;
 		#endif
 
-		if (res != 0 && res != 21) { /* wir ignorieren hier fehler 21, weil wenn file nicht existert, is das wurst. */
+		if( res != 0 && res != 21 ) /* wir ignorieren hier fehler 21, weil wenn file nicht existert, is das wurst. */
+		{
 			b_result = FALSE;
 			fprintf( stderr, "%s:%d: Error performing curl request (host = %.128s res = %d, err = %.1024s).\n", __FUNCTION__, __LINE__, (s_hostname ? s_hostname : "<null>"), res, curl_err );			
 		}

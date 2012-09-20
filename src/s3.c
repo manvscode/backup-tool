@@ -14,6 +14,11 @@
 #define S3_HOSTNAME          "s3.amazonaws.com"
 #define S3_USERAGENT         "Shrewd LLC/S3"
 
+typedef struct sMemoryBuffer {
+	byte *buffer;
+	size_t size;
+} MemoryBuffer;
+
 /* path sanity checks */
 /* JoeM: Previously we allowed empty strings (i.e. "") */
 #define s3_is_path_valid( s_path )                  ((s_path) && strlen((s_path)) > 0)
@@ -31,46 +36,47 @@ void    _print_s3_buckets( FILE *output, xmlDocPtr doc, xmlNodeSetPtr nodes );
 void    _debug_dump_response( FILE *p_output, const MemoryBuffer *p_memory ); 
 
 
-void s3_initialize( S3 *p_s3, const char *access_id, const char *secret_key, boolean verbose ) {
-	// ---- CODE ----
+void s3_initialize( S3 *p_s3, const char *access_id, const char *secret_key, boolean verbose )
+{
 	strncpy( p_s3->s_aws_access_id,  access_id,  sizeof(p_s3->s_aws_access_id) );
 	strncpy( p_s3->s_aws_secret_key, secret_key, sizeof(p_s3->s_aws_secret_key) );
 	p_s3->b_verbose = verbose;
 	
-	if( s3_initialization_count <= 0 ) {
+	if( s3_initialization_count <= 0 )
+	{
 		/* Init libxml */     
 		xmlInitParser( );
 		s3_initialization_count++;
 	}
 }
 
-void s3_deinitialize( void ) {
-	if( s3_initialization_count > 0 ) {
+void s3_deinitialize( void )
+{
+	if( s3_initialization_count > 0 )
+	{
 		/* Shutdown libxml */
 		xmlCleanupParser();
 		s3_initialization_count--;
 	}
 }
 
-void s3_format_time( /*out*/ char *s_destination_string, size_t length ) {
-	// ---- VAR ----
+void s3_format_time( /*out*/ char *s_destination_string, size_t length )
+{
 	time_t ts     = time( NULL );
 	struct tm *tm = gmtime( &ts );
 
-	// ---- CODE ----
 	assert( s_destination_string );
 	
 	strftime( s_destination_string, length, "%a, %d %b %Y %H:%M:%S +0000", tm );
 }
 
 /* caller must free returned pointer */
-const byte *s3_sign( const S3 *p_s3, const char* s_sign_string ) {
-	// ---- VAR ----
+const byte *s3_sign( const S3 *p_s3, const char* s_sign_string )
+{
 	byte signature_plain[ EVP_MAX_MD_SIZE ];
 	unsigned int ret_size 	= 0;
 	HMAC_CTX hmac;
 
-	// ---- CODE ----
 	assert( p_s3 );
 	assert( s_sign_string );
 
@@ -92,19 +98,18 @@ const byte *s3_sign( const S3 *p_s3, const char* s_sign_string ) {
 }
 
 
-int s3_response_code( const CURL *p_curl ) {
-	// ---- VAR ----
+int s3_response_code( const CURL *p_curl )
+{
 	long status = 0L;
 
-	// ---- CODE ----
 	assert( p_curl );
 	curl_easy_getinfo( (CURL *) p_curl, CURLINFO_RESPONSE_CODE, &status );
 	return (int) status;
 }
 
 /* list buckets */
-boolean s3_list_buckets( CURL *p_curl, const S3 *p_s3 ) {
-	// ---- VAR ----
+boolean s3_list_buckets( CURL *p_curl, const S3 *p_s3 )
+{
 	char curl_err[ CURL_ERROR_SIZE ];
 	char format_time[ 128 ];
 	char buffer[ 1024 ];
@@ -116,7 +121,6 @@ boolean s3_list_buckets( CURL *p_curl, const S3 *p_s3 ) {
 	#endif
 	MemoryBuffer chunk;
 
-	// ---- CODE ----
 	assert( p_curl );
 	assert( p_s3 );
 	memset( &chunk, 0, sizeof(MemoryBuffer) );
@@ -126,7 +130,8 @@ boolean s3_list_buckets( CURL *p_curl, const S3 *p_s3 ) {
 		s3_format_time( format_time, sizeof(format_time) );
 	}
 
-	if( b_result ) {
+	if( b_result )
+	{
 
 		curl_easy_setopt( p_curl, CURLOPT_ERRORBUFFER, curl_err );
 		curl_easy_setopt( p_curl, CURLOPT_USERAGENT, S3_USERAGENT );
@@ -169,14 +174,17 @@ boolean s3_list_buckets( CURL *p_curl, const S3 *p_s3 ) {
 		/* perform request */				
 		res = curl_easy_perform( p_curl );
 
-		if( res != 0 ) {
+		if( res != 0 )
+		{
 			if( s3_is_verbose(p_s3) ) fprintf( stderr, "%s:%d: Error performing curl request (res = %d, err = %.1024s).\n", __FUNCTION__, __LINE__, res, curl_err );			
 			b_result = FALSE;
 		}	
 
 		/* check http status code */
 		int i_response_code = s3_response_code( p_curl );
-		if( i_response_code != 200 ) { /* did we not get 200? */
+		if( i_response_code != 200 )
+		{
+			/* did we not get 200? */
 			if( s3_is_verbose(p_s3) ) fprintf( stderr, "%s:%d: Wrong HTTP response while talking to S3 host (res = %d).\n", __FUNCTION__, __LINE__, i_response_code );			
 			b_result = FALSE;
 		}
@@ -188,7 +196,8 @@ boolean s3_list_buckets( CURL *p_curl, const S3 *p_s3 ) {
 		#endif
 	}
 
-	if( b_result ) {
+	if( b_result )
+	{
 		#ifdef _DEBUG
 		_debug_dump_response( stdout, &chunk );
 		#endif
@@ -199,12 +208,14 @@ boolean s3_list_buckets( CURL *p_curl, const S3 *p_s3 ) {
 	return b_result;
 }
 
-size_t _s3_list_buckets_handle_response( void *ptr, size_t size, size_t nmemb, void *data ) {
+size_t _s3_list_buckets_handle_response( void *ptr, size_t size, size_t nmemb, void *data )
+{
 	register size_t realsize = size * nmemb;
 	MemoryBuffer *mem        = (MemoryBuffer *) data;
 	mem->buffer              = (byte *) realloc( mem->buffer, mem->size + realsize + 1 );
 
-	if( mem->buffer ) {
+	if( mem->buffer )
+	{
 		memcpy( &(mem->buffer[ mem->size ]), ptr, realsize );
 		mem->size               += realsize;
 		mem->buffer[ mem->size ] = 0;
@@ -213,7 +224,8 @@ size_t _s3_list_buckets_handle_response( void *ptr, size_t size, size_t nmemb, v
 	return realsize;
 }
 
-boolean _s3_list_buckets_process_response ( const S3 *p_s3, const MemoryBuffer *p_memory ) {
+boolean _s3_list_buckets_process_response ( const S3 *p_s3, const MemoryBuffer *p_memory )
+{
 	xmlDocPtr doc;
 	xmlXPathContextPtr xpathCtx; 
 	xmlXPathObjectPtr xpathObj; 
@@ -223,14 +235,16 @@ boolean _s3_list_buckets_process_response ( const S3 *p_s3, const MemoryBuffer *
 
 	/* Load XML document */
 	doc = xmlParseMemory( (char *) p_memory->buffer, p_memory->size );
-	if( doc == NULL ) {
+	if( doc == NULL )
+	{
 		if( s3_is_verbose(p_s3) ) fprintf( stderr, "Error: unable to parse memory buffer.\n" );
 		return FALSE;
 	}
 
 	/* Create xpath evaluation context */
 	xpathCtx = xmlXPathNewContext( doc );
-	if( xpathCtx == NULL ) {
+	if( xpathCtx == NULL )
+	{
 		if( s3_is_verbose(p_s3) ) fprintf( stderr,"Error: unable to create new XPath context\n" );
 		xmlFreeDoc( doc );
 		return FALSE;
@@ -239,7 +253,8 @@ boolean _s3_list_buckets_process_response ( const S3 *p_s3, const MemoryBuffer *
 	/* do register namespace */
 	const char *prefix = "aws";
 	const char *href = "http://s3.amazonaws.com/doc/2006-03-01/";
-	if( xmlXPathRegisterNs(xpathCtx, BAD_CAST prefix, BAD_CAST href) != 0 ) {
+	if( xmlXPathRegisterNs(xpathCtx, BAD_CAST prefix, BAD_CAST href) != 0 )
+	{
 		if( s3_is_verbose(p_s3) ) fprintf( stderr,"Error: unable to register NS with prefix=\"%s\" and href=\"%s\"\n", prefix, href );
 		xmlXPathFreeContext( xpathCtx );
 		xmlFreeDoc( doc );
@@ -248,7 +263,8 @@ boolean _s3_list_buckets_process_response ( const S3 *p_s3, const MemoryBuffer *
 
 	/* Evaluate xpath expression */
 	xpathObj = xmlXPathEvalExpression( BAD_CAST "//aws:Bucket", xpathCtx );
-	if( xpathObj == NULL ) {
+	if( xpathObj == NULL )
+	{
 		if( s3_is_verbose(p_s3) ) fprintf( stderr,"Error: unable to evaluate xpath expression.\n" );
 		xmlXPathFreeContext( xpathCtx );
 		xmlFreeDoc( doc );
@@ -266,7 +282,8 @@ boolean _s3_list_buckets_process_response ( const S3 *p_s3, const MemoryBuffer *
 	return TRUE;
 }
 
-void _print_s3_buckets( FILE *output, xmlDocPtr doc, xmlNodeSetPtr nodes ) {
+void _print_s3_buckets( FILE *output, xmlDocPtr doc, xmlNodeSetPtr nodes )
+{
 	xmlNodePtr currentBucket;
 	int size;
 	int i;
@@ -274,23 +291,28 @@ void _print_s3_buckets( FILE *output, xmlDocPtr doc, xmlNodeSetPtr nodes ) {
 	assert(output);
 	size = (nodes) ? nodes->nodeNr : 0;
 
-	if( size > 0 ) {
+	if( size > 0 )
+	{
 		fprintf( output, "%-20s %-20s\n", "Bucket Name", "Created On" );
 
-		for(i = 0; i < size; ++i) {
+		for(i = 0; i < size; ++i)
+		{
 			assert(nodes->nodeTab[i]);
 			currentBucket = nodes->nodeTab[i];   	    
 			xmlNodePtr child;
 
-			for( child = currentBucket->children; child; child = child->next ) {
+			for( child = currentBucket->children; child; child = child->next )
+			{
 				if( child->type !=  XML_ELEMENT_NODE ) continue;
 
-				if( xmlStrcasecmp(child->name, BAD_CAST "name") == 0 ) {
+				if( xmlStrcasecmp(child->name, BAD_CAST "name") == 0 )
+				{
 					xmlChar *name = xmlNodeListGetString(doc, child->children, 1);
 					fprintf( output, "%-20s ", name );
 					xmlFree( name );
 				}
-				else if( xmlStrcasecmp(child->name, BAD_CAST "creationdate") == 0 ) {
+				else if( xmlStrcasecmp(child->name, BAD_CAST "creationdate") == 0 )
+				{
 					xmlChar *date = xmlNodeListGetString(doc, child->children, 1);
 					fprintf( output, "%-20s", date );
 					xmlFree( date );
@@ -299,12 +321,15 @@ void _print_s3_buckets( FILE *output, xmlDocPtr doc, xmlNodeSetPtr nodes ) {
 			printf( "\n" );
 		}
 	}
-	else { /* no buckets */
+	else
+	{
+	   	/* no buckets */
 		fprintf( output, "No buckets exist.\n" );
 	}
 }
 
-void _debug_dump_response( FILE *p_output, const MemoryBuffer *p_memory ) {
+void _debug_dump_response( FILE *p_output, const MemoryBuffer *p_memory )
+{
 	assert( p_output );
 	assert( p_memory );
 
@@ -316,8 +341,8 @@ void _debug_dump_response( FILE *p_output, const MemoryBuffer *p_memory ) {
 	fprintf( p_output, "------------------------------------------------\n" );
 }
 
-boolean s3_put_file( CURL *p_curl, const S3 *p_s3, const char *s_bucket, const char *s_key, const char *s_filename, const char *mime_type ) {
-	// ---- VAR ----
+boolean s3_put_file( CURL *p_curl, const S3 *p_s3, const char *s_bucket, const char *s_key, const char *s_filename, const char *mime_type )
+{
 	char curl_err[ CURL_ERROR_SIZE ];
     char format_time[ 128 ];
 	char buffer[ 1024 ];
@@ -330,7 +355,6 @@ boolean s3_put_file( CURL *p_curl, const S3 *p_s3, const char *s_bucket, const c
 	CURLcode res                  = 0;
 	boolean b_result              = TRUE;
 
-	// ---- CODE ----
 	assert( p_curl );
 	assert( p_s3 );
 	assert( s_bucket );
@@ -345,7 +369,8 @@ boolean s3_put_file( CURL *p_curl, const S3 *p_s3, const char *s_bucket, const c
 		s3_format_time( format_time, sizeof(format_time) );
 		
 		/* sanity checks */
-		if( !s3_is_path_valid( s_key ) ) {
+		if( !s3_is_path_valid( s_key ) )
+		{
 			if( s3_is_verbose(p_s3) ) fprintf( stderr, "Bad S3 key.\n" );
 			b_result = FALSE;
 		}	
@@ -356,13 +381,15 @@ boolean s3_put_file( CURL *p_curl, const S3 *p_s3, const char *s_bucket, const c
 	{
 		fd_tmp = fopen( s_filename, "rb" );
 
-		if( !fd_tmp ) {
+		if( !fd_tmp )
+		{
 			if( s3_is_verbose(p_s3) ) fprintf( stderr, "Cannot open file\n" );
 			b_result = FALSE;
 		}
 	}
 
-	if( b_result /*ec == 0*/ ) {
+	if( b_result /*ec == 0*/ )
+	{
 		#ifdef _NO_FILE_STDIO_STREAM
 		curl_easy_setopt( p_curl, CURLOPT_READDATA, fd_tmp ); /* I had no stdio_stream in my FILE structure */
 		#else
@@ -436,14 +463,17 @@ boolean s3_put_file( CURL *p_curl, const S3 *p_s3, const char *s_bucket, const c
 		/* perform request */				
 		res = curl_easy_perform( p_curl );
 
-		if( res != 0 ) {
+		if( res != 0 )
+		{
 			if( s3_is_verbose(p_s3) ) fprintf( stderr, "%s:%d: Error performing curl request (res = %d, err = %.1024s).\n", __FUNCTION__, __LINE__, res, curl_err );			
 			b_result = FALSE;
 		}	
 
 		/* check http status code */
 		int i_response_code = s3_response_code( p_curl );
-		if( i_response_code != 200 ) { /* did we not get 200? */
+		if( i_response_code != 200 )
+		{
+			/* did we not get 200? */
 			if( s3_is_verbose(p_s3) ) fprintf( stderr, "%s:%d: Wrong HTTP response while talking to S3 host (res = %d).\n", __FUNCTION__, __LINE__, i_response_code );			
 			b_result = FALSE;
 		}
@@ -459,9 +489,8 @@ boolean s3_put_file( CURL *p_curl, const S3 *p_s3, const char *s_bucket, const c
 	return b_result;
 }
 
-
-boolean s3_delete_file( CURL *p_curl, const S3 *p_s3, const char *s_bucket, const char *s_key ) {
-	// ---- VAR ----
+boolean s3_delete_file( CURL *p_curl, const S3 *p_s3, const char *s_bucket, const char *s_key )
+{
 	char curl_err[ CURL_ERROR_SIZE ];
 	char format_time[ 128 ];
     char buffer[ 1024 ];
@@ -472,7 +501,6 @@ boolean s3_delete_file( CURL *p_curl, const S3 *p_s3, const char *s_bucket, cons
 	CURLcode res                  = 0;
 	boolean b_result              = TRUE;
 
-	// ---- CODE ----
 	assert( p_curl );
 	assert( p_s3 );
 	assert( s_bucket );
@@ -485,13 +513,15 @@ boolean s3_delete_file( CURL *p_curl, const S3 *p_s3, const char *s_bucket, cons
 		s3_format_time( format_time, sizeof(format_time) );
 		
 		/* sanity checks */
-		if( !s3_is_path_valid( s_key ) ) {
+		if( !s3_is_path_valid( s_key ) )
+		{
 			if( s3_is_verbose(p_s3) ) fprintf( stderr, "Bad S3 key.\n" );
 			b_result = FALSE;
 		}	
 	}
 
-	if( b_result /*ec == 0*/ ) {
+	if( b_result /*ec == 0*/ )
+	{
 		curl_easy_setopt( p_curl, CURLOPT_ERRORBUFFER, curl_err);								
 		curl_easy_setopt( p_curl, CURLOPT_USERAGENT, S3_USERAGENT );
 		curl_easy_setopt( p_curl, CURLOPT_CUSTOMREQUEST, "DELETE" );					
@@ -543,14 +573,17 @@ boolean s3_delete_file( CURL *p_curl, const S3 *p_s3, const char *s_bucket, cons
 		res = curl_easy_perform( p_curl );
 
 		/* wir ignorieren hier fehler 21, weil wenn file nicht existert, is das wurst. */
-		if (res != 0 && res != 21) { 
+		if (res != 0 && res != 21) 
+		{
 			if( s3_is_verbose(p_s3) ) fprintf( stderr, "%s:%d: Error performing curl request (res = %d, err = %.1024s).\n", __FUNCTION__, __LINE__, res, curl_err );			
 			b_result = FALSE;
 		}
 
 		/* check http status code */
 		int i_response_code = s3_response_code( p_curl );
-		if( i_response_code != 200 && i_response_code != 204 ) { /* did we not get 200 or 204? */
+		if( i_response_code != 200 && i_response_code != 204 )
+		{
+			/* did we not get 200 or 204? */
 			if( s3_is_verbose(p_s3) ) fprintf( stderr, "%s:%d: Wrong HTTP response while talking to S3 host (res = %d).\n", __FUNCTION__, __LINE__, i_response_code );			
 			b_result = FALSE;
 		}
@@ -565,16 +598,16 @@ boolean s3_delete_file( CURL *p_curl, const S3 *p_s3, const char *s_bucket, cons
 	return b_result;
 }
 
-size_t file_size_from_pointer( FILE *p_file, boolean b_keep_open ) {
-	// ---- VAR ----
+size_t file_size_from_pointer( FILE *p_file, boolean b_keep_open )
+{
 	size_t size = 0;
 
-	// ---- CODE ----
 	fseek( p_file, 0, SEEK_END );
 	size = ftell( p_file );
 	rewind( p_file );
 
-	if( !b_keep_open ) {
+	if( !b_keep_open )
+	{
 		fclose( p_file );
 	}
 

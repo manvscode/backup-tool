@@ -7,14 +7,14 @@
 #define MAX_PATH 255
 
 
-boolean simple_image_initialize( const char *s_client_path, size_t length ) {
-	// ---- VAR ----
+boolean simple_image_initialize( const char *s_client_path, size_t length )
+{
 	char s_cwd[ MAX_PATH ];
 
-	// ---- CODE ----
-	
-	if( !s_client_path ) {
-		if( getcwd( s_cwd, sizeof(s_cwd) ) < 0 ) {
+	if( !s_client_path )
+	{
+		if( getcwd( s_cwd, sizeof(s_cwd) ) < 0 )
+		{
 			fprintf( stderr, "Unable to determine current working directory.\n" );
 			return FALSE;
 		}
@@ -24,16 +24,18 @@ boolean simple_image_initialize( const char *s_client_path, size_t length ) {
 		s_cwd[ length ] = '\0';
 	}
 
-	if( !IsMagickInstantiated( ) ) {
+	if( !IsMagickInstantiated( ) )
+	{
 		MagickCoreGenesis( s_cwd, MagickTrue );
 	}
 
 	return TRUE;
 }
 
-boolean simple_image_deinitialize( ) {
-	// ---- CODE ----
-	if( IsMagickInstantiated( ) ) {
+boolean simple_image_deinitialize( )
+{
+	if( IsMagickInstantiated( ) )
+	{
 		/* Destroy the Image Magick environment */
 		MagickCoreTerminus( );
 	}
@@ -41,19 +43,19 @@ boolean simple_image_deinitialize( ) {
 	return TRUE;
 }
 
-boolean simple_image_load( const char *s_filename, size_t length, Image **p_p_image ) {
-	// ---- VAR ----
+boolean simple_image_load( const char *s_filename, size_t length, Image **p_p_image )
+{
 	boolean b_result = TRUE;
 	ImageInfo *p_info = NULL;
 	ExceptionInfo *p_exception = AcquireExceptionInfo( );
 
-	// ---- CODE ----
     p_info = CloneImageInfo( (ImageInfo *) NULL );
     strncpy( p_info->filename, s_filename, length );
 	p_info->filename[ length ] = '\0';
     *p_p_image = ReadImage( p_info, p_exception );
 
-    if( p_exception->severity != UndefinedException ) {
+    if( p_exception->severity != UndefinedException )
+	{
 		CatchException(p_exception);
 		DestroyImageInfo( p_info );
 		b_result = FALSE;
@@ -70,13 +72,12 @@ boolean simple_image_load( const char *s_filename, size_t length, Image **p_p_im
 	return b_result;
 }
 
-boolean simple_image_write( const char *s_filename, size_t length, Image *p_image ) {
-	// ---- VAR ----
+boolean simple_image_write( const char *s_filename, size_t length, Image *p_image )
+{
 	boolean b_result = TRUE;
 	ImageInfo *p_info = NULL;
 	ExceptionInfo *p_exception = AcquireExceptionInfo( );
 
-	// ---- CODE ----
     p_info = CloneImageInfo( (ImageInfo *) NULL );
 
 
@@ -86,14 +87,16 @@ boolean simple_image_write( const char *s_filename, size_t length, Image *p_imag
 	//p_info->quality = 90;
 	p_image->quality = 90;
 
-	if( simple_image_is_jpeg( p_image ) ) {	
+	if( simple_image_is_jpeg( p_image ) ) 
+	{
 		//p_info->compression = JPEG2000Compression;
 		p_image->compression = JPEG2000Compression;
 	}
 
 	WriteImage( p_info, p_image );
 
-    if( p_exception->severity != UndefinedException ) {
+    if( p_exception->severity != UndefinedException )
+	{
 		CatchException( p_exception );
 		b_result = FALSE;
 	}
@@ -103,31 +106,30 @@ boolean simple_image_write( const char *s_filename, size_t length, Image *p_imag
 	return b_result;
 }
 
-void simple_image_destroy( Image *p_image ) {
-	// ---- CODE ----
+void simple_image_destroy( Image *p_image )
+{
 	DestroyImage( p_image );
 }
 
-const char* simple_image_format_description( const Image *data ) {
-	// ---- VAR ----
+const char* simple_image_format_description( const Image *data )
+{
 	ExceptionInfo *p_exception = AcquireExceptionInfo( );
 	const MagickExport MagickInfo *magick_info = GetMagickInfo( data->magick, p_exception );
-	// ---- CODE ----
+
 	DestroyExceptionInfo( p_exception );
 	return GetMagickDescription( magick_info );
 }
 
-boolean simple_image_resize( const Image *p_image, uint width, uint height, /*out*/ Image **p_p_new_image ) {
-	// ---- VAR ----
+boolean simple_image_resize( const Image *p_image, uint width, uint height, /*out*/ Image **p_p_new_image )
+{
 	boolean b_result = TRUE;
 	ExceptionInfo *p_exception = AcquireExceptionInfo( );
-
-	// ---- CODE ----
 
 	/* This can be expanded later to accept different resize filters */
 	*p_p_new_image = ResizeImage( p_image, width, height, LanczosFilter, 1.0, p_exception );
 
-    if( p_exception->severity != UndefinedException ) {
+    if( p_exception->severity != UndefinedException )
+	{
 		CatchException( p_exception );
 		b_result = FALSE;
 	}
@@ -138,16 +140,15 @@ boolean simple_image_resize( const Image *p_image, uint width, uint height, /*ou
 	return b_result;
 }
 
-boolean simple_image_rotate( const Image *p_image, double angle_in_degrees, /*out*/ Image **p_p_new_image ) {
-	// ---- VAR ----
+boolean simple_image_rotate( const Image *p_image, double angle_in_degrees, /*out*/ Image **p_p_new_image )
+{
 	boolean b_result = TRUE;
 	ExceptionInfo *p_exception = AcquireExceptionInfo( );
 
-	// ---- CODE ----
-	
 	*p_p_new_image = RotateImage( p_image, angle_in_degrees, p_exception );
 
-    if( p_exception->severity != UndefinedException ) {
+    if( p_exception->severity != UndefinedException )
+	{
 		CatchException( p_exception );
 		b_result = FALSE;
 	}
@@ -158,13 +159,12 @@ boolean simple_image_rotate( const Image *p_image, double angle_in_degrees, /*ou
 	return b_result;
 }
 
-boolean simple_image_crop( const Image *p_image, uint x, uint y, uint width, uint height, /*out*/ Image **p_p_new_image ) {
-	// ---- VAR ----
+boolean simple_image_crop( const Image *p_image, uint x, uint y, uint width, uint height, /*out*/ Image **p_p_new_image )
+{
 	boolean b_result = TRUE;
 	ExceptionInfo *p_exception = AcquireExceptionInfo( );
 	RectangleInfo geometry;
 
-	// ---- CODE ----
 	geometry.x      = x;
 	geometry.y      = y;
 	geometry.width  = width;
@@ -172,7 +172,8 @@ boolean simple_image_crop( const Image *p_image, uint x, uint y, uint width, uin
 	
 	*p_p_new_image = CropImage( p_image, &geometry, p_exception );
 
-    if( p_exception->severity != UndefinedException ) {
+    if( p_exception->severity != UndefinedException )
+	{
 		CatchException( p_exception );
 		b_result = FALSE;
 	}
@@ -183,13 +184,13 @@ boolean simple_image_crop( const Image *p_image, uint x, uint y, uint width, uin
 	return b_result;
 }
 
-boolean simple_image_composite( Image **p_p_image, const Image *p_top_image, long x, long y ) {
-	// ---- CODE ----
+boolean simple_image_composite( Image **p_p_image, const Image *p_top_image, long x, long y )
+{
 	return CompositeImage( *p_p_image, OverCompositeOp, p_top_image, x, y ) == MagickTrue;
 }
 
-boolean simple_image_annotate( Image **p_p_image, const char *text ) {
-	// ---- VAR ----
+boolean simple_image_annotate( Image **p_p_image, const char *text )
+{
     ImageInfo *p_info;
 	DrawInfo *p_draw_info;
 	const char *geometry            = "+3+3"; /* push off to (3,3) from bottom left corner */
@@ -197,7 +198,6 @@ boolean simple_image_annotate( Image **p_p_image, const char *text ) {
 	const double font_kerning       = 0.83;
 	const unsigned long font_weight = 10;
 
-	// ---- CODE ----
 	p_info = CloneImageInfo( (ImageInfo *) NULL );
 
 	PixelPacket foregroundColor;
@@ -272,26 +272,26 @@ boolean simple_image_annotate( Image **p_p_image, const char *text ) {
 	return TRUE;
 }
 
-boolean simple_image_is_jpeg( const Image *data ) {
-	// ---- VAR ----
+boolean simple_image_is_jpeg( const Image *data )
+{
 	const char *format = simple_image_format( data );
-	// ---- CODE ----
 	return strncmp( format, SIMPLE_IMAGE_JPEG, SIMPLE_IMAGE_JPEG_LENGTH ) == 0;
 }
 
-boolean simple_image_is_file_jpeg( const char *s_filename, size_t length ) {
-	// ---- VAR ----
+boolean simple_image_is_file_jpeg( const char *s_filename, size_t length )
+{
 	boolean b_is_jpeg        = TRUE;
 	const char *ext          = strrchr( s_filename, '.' ) + 1;
 
-	// ---- CODE ----
 	if( strncasecmp(ext, "jpg", 3) != 0 &&
 	    strncasecmp(ext, "jpe", 3) != 0 &&
-	    strncasecmp(ext, "jpeg", 4) != 0 ) {
+	    strncasecmp(ext, "jpeg", 4) != 0 )
+	{
 		b_is_jpeg = FALSE;
 	}
 
-	if( b_is_jpeg ) {
+	if( b_is_jpeg )
+	{
 		ExceptionInfo *p_exception = AcquireExceptionInfo( );
 		ImageInfo *p_image_info = NULL;
 		Image *p_image          = NULL;
@@ -301,7 +301,8 @@ boolean simple_image_is_file_jpeg( const char *s_filename, size_t length ) {
 		p_image_info->filename[ length ] = '\0';
 		p_image = PingImage( p_image_info, p_exception );
 
-		if( p_exception->severity != UndefinedException ) {
+		if( p_exception->severity != UndefinedException )
+		{
 			CatchException( p_exception );
 			DestroyImageInfo( p_image_info );
 			b_is_jpeg = FALSE;
@@ -323,7 +324,8 @@ boolean simple_image_is_file_jpeg( const char *s_filename, size_t length ) {
 }
 
 
-boolean simple_image_exif_clear( Image *p_image ) {
+boolean simple_image_exif_clear( Image *p_image )
+{
 	assert( p_image );
 	assert( p_image->signature == MagickSignature );
 	DestroyImageProfiles( p_image );
@@ -331,7 +333,8 @@ boolean simple_image_exif_clear( Image *p_image ) {
 }
 
 /* this will be removed later */
-void simple_image_print_exif( FILE *p_output, Image *p_image ) {
+void simple_image_print_exif( FILE *p_output, Image *p_image )
+{
 	const char *s_key = NULL;
 	int i; 
 
@@ -343,7 +346,8 @@ void simple_image_print_exif( FILE *p_output, Image *p_image ) {
 	ResetImageProfileIterator( p_image );
 
 	/* for each EXIF key ... */
-	while( (s_key = (const char*) GetNextImageProfile( p_image )) ) {
+	while( (s_key = (const char*) GetNextImageProfile( p_image )) )
+	{
 		const StringInfo *p_profile  = GetImageProfile( p_image, s_key );
 		const char *s_value          = StringInfoToString( p_profile );
 
@@ -360,7 +364,8 @@ void simple_image_print_exif( FILE *p_output, Image *p_image ) {
 	}
 }
 
-boolean simple_image_strip_image( Image *p_image ) {
+boolean simple_image_strip_image( Image *p_image )
+{
 	/* removes EXIF and comments */
 	return StripImage((p_image)) == MagickTrue;
 }

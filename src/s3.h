@@ -11,11 +11,6 @@ typedef struct sS3 {
 	boolean b_verbose;
 } S3;
 
-typedef struct sMemoryBuffer {
-	byte *buffer;
-	size_t size;
-} MemoryBuffer;
-
 #define S3_MAX_BUCKET_NAME   (255)
 
 #define s3_is_verbose( p_s3 ) ( (p_s3)->b_verbose )
