@@ -55,6 +55,9 @@ struct tag_backup_tool {
 	mime_table mime_table;
 };
 
+boolean backup_initialize            ( backup_tool *p_tool );
+boolean backup_deinitialize          ( backup_tool *p_tool );
+
 #define backup_show_messages( p_tool, messages ) \
 	if( !(p_tool)->b_quiet ) { \
 		messages \
@@ -71,15 +74,17 @@ struct tag_backup_tool {
 //////////////////////////////////////////////////////
 int main( int argc, char *argv[] )
 {
-	int option_index = 0;
-	int option       = 0;
-	backup_tool bt;
+	int option_index  = 0;
+	int option        = 0;
+	backup_tool* p_bt = NULL;
 	char configuration_file[ 255 ];
 
 	/* Copy default value for configuration filename */
 	strncpy( configuration_file, BACKUP_CONFIGURATION_FILE, sizeof(configuration_file) );
 
-	backup_initialize( &bt );
+	p_bt = backup_create( );
+
+	if( !p_bt ) return 1;
 
 	/* get all of the command line options */
 	while( (option = getopt_long( argc, argv, "b:k:p:c:r:dlvqh", long_options, &option_index )) >= 0 )
@@ -89,35 +94,35 @@ int main( int argc, char *argv[] )
 			case 0: /* long option */
 				break;
 			case 'b': /* S3 bucket */
-				backup_set_s3_bucket( &bt, optarg );
+				backup_set_s3_bucket( p_bt, optarg );
 				break;
 			case 'k': /* S3 key */
-				backup_set_s3_key( &bt, optarg );
+				backup_set_s3_key( p_bt, optarg );
 				break;
 			case 'p': /* S3 put */
-				backup_set_op( &bt, OP_S3_PUT );
-				backup_set_file( &bt, optarg );
+				backup_set_op( p_bt, OP_S3_PUT );
+				backup_set_file( p_bt, optarg );
 				break;
 			case 'c': /* configuration file */
 				strncpy( configuration_file, optarg, sizeof(configuration_file) );
 				break;
 			case 'r':
-				backup_set_retries( &bt, atoi(optarg) );
+				backup_set_retries( p_bt, atoi(optarg) );
 				break;
 			case 'd': /* S3 delete */
-				backup_set_op( &bt, OP_S3_DELETE );
+				backup_set_op( p_bt, OP_S3_DELETE );
 				break;
 			case 'l': /* S3 list */
-				backup_set_op( &bt, OP_S3_LIST );
+				backup_set_op( p_bt, OP_S3_LIST );
 				break;
 			case 'v': /* Verbose */
-				backup_set_verbose( &bt, TRUE );
+				backup_set_verbose( p_bt, TRUE );
 				break;
 			case 'q': /* Quiet */
-				backup_set_quiet( &bt, TRUE );
+				backup_set_quiet( p_bt, TRUE );
 				break;
 			case 'h': /* Help */
-				backup_deinitialize( &bt );
+				backup_deinitialize( p_bt );
 				return backup_help( argv[ 0 ] );
 				break;
 			default:
@@ -125,13 +130,13 @@ int main( int argc, char *argv[] )
 		}
 	}
 	
-	backup_show_messages_if_verbose( &bt, 
+	backup_show_messages_if_verbose( p_bt, 
 		printf( "Using %s...\n", configuration_file );
 	);
 	boolean b_result = FALSE;
 
 	/* Read in configuration from file */
-	if( backup_read_configuration( &bt, configuration_file ) )
+	if( backup_read_configuration( p_bt, configuration_file ) )
 	{
 		S3 s3;
 		s3_initialize( &s3, bt.s_s3_access_id, bt.s_s3_secret_key, bt.b_verbose );
@@ -139,13 +144,13 @@ int main( int argc, char *argv[] )
 		switch( bt.operation )
 		{
 			case OP_S3_PUT:
-				b_result = backup_s3_put_file( &bt, &s3 );
+				b_result = backup_s3_put_file( p_bt, &s3 );
 				break;
 			case OP_S3_DELETE:
-				b_result = backup_s3_delete_file( &bt, &s3 );
+				b_result = backup_s3_delete_file( p_bt, &s3 );
 				break;
 			case OP_S3_LIST:
-				b_result = backup_s3_list_buckets( &bt, &s3 );
+				b_result = backup_s3_list_buckets( p_bt, &s3 );
 				break;
 			case OP_NOTHING:
 			default:
@@ -155,9 +160,39 @@ int main( int argc, char *argv[] )
 		s3_deinitialize( );	
 	}
 
-	backup_deinitialize( &bt );
+	backup_destroy( &p_bt );
 
 	return b_result ? 0 : 2;
+}
+
+backup_tool* backup_create( void )
+{
+	backup_tool* p_bt = (backup_tool*) malloc( sizeof(backup_tool) );
+
+	if( p_bt )
+	{
+		if( !backup_initialize( p_bt ) )
+		{
+			free( p_bt );
+			p_bt = NULL;
+		}
+	}
+
+	return p_bt;
+}
+
+boolean backup_destroy( backup_tool** p_tool )
+{
+	boolean result = FALSE;
+
+	if( p_tool && *p_tool )
+	{
+		backup_deinitialize( *p_tool );
+		p_tool = NULL;
+		result = TRUE;
+	}
+
+	return result;
 }
 
 boolean backup_initialize( backup_tool *p_tool )
