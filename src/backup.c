@@ -4,7 +4,9 @@
 #include <assert.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <curl/curl.h>
 #include <glib.h>
+#include "s3.h"
 #include "backup.h"
 #include "types.h"
 #include "mime.h"
@@ -53,6 +55,7 @@ struct tag_backup_tool {
 	uint retries;
 	CURL* p_curl;
 	mime_table mime_table;
+	S3 s3;
 };
 
 boolean backup_initialize            ( backup_tool *p_tool );
@@ -138,9 +141,6 @@ int main( int argc, char *argv[] )
 	/* Read in configuration from file */
 	if( backup_read_configuration( p_bt, configuration_file ) )
 	{
-		S3 s3;
-		s3_initialize( &s3, bt.s_s3_access_id, bt.s_s3_secret_key, bt.b_verbose );
-
 		switch( bt.operation )
 		{
 			case OP_S3_PUT:
@@ -156,8 +156,6 @@ int main( int argc, char *argv[] )
 			default:
 				break;
 		}
-
-		s3_deinitialize( );	
 	}
 
 	backup_destroy( &p_bt );
@@ -223,6 +221,8 @@ boolean backup_initialize( backup_tool *p_tool )
 
 	/* this allocates memory */
 	mime_create( &p_tool->mime_table );
+		
+	s3_initialize( &s3, bt.s_s3_access_id, bt.s_s3_secret_key, bt.b_verbose );
 
 	return TRUE;
 }
@@ -243,6 +243,8 @@ boolean backup_deinitialize( backup_tool *p_tool )
 	#endif						
 
 	mime_destroy( &p_tool->mime_table );
+		
+	s3_deinitialize( );	
 	
 	return TRUE;
 }
@@ -371,7 +373,7 @@ int backup_help( const char *program )
 	return 1;
 }
 
-boolean backup_s3_put_file( backup_tool *p_tool, const S3 *p_s3 )
+boolean backup_s3_put_file( backup_tool *p_tool )
 {
 	boolean b_result        = FALSE;
 	const char *p_dot       = strrchr( p_tool->s_filename, '.' );
@@ -389,7 +391,7 @@ boolean backup_s3_put_file( backup_tool *p_tool, const S3 *p_s3 )
 			printf( "Uploading: %-12.12s   %40.40s --> ", s_mime_type, p_tool->s_filename );
 		);
 
-		b_result = s3_put_file( p_tool->p_curl, p_s3, p_tool->s_s3_bucket, p_tool->s_key, p_tool->s_filename, s_mime_type );
+		b_result = s3_put_file( p_tool->p_curl, &p_tool->s3, p_tool->s_s3_bucket, p_tool->s_key, p_tool->s_filename, s_mime_type );
 
 		backup_show_messages( p_tool,
 			if( retry_attempts > 1 )
@@ -408,7 +410,7 @@ boolean backup_s3_put_file( backup_tool *p_tool, const S3 *p_s3 )
 	return b_result;
 }
 
-boolean backup_s3_delete_file( backup_tool *p_tool, const S3 *p_s3 )
+boolean backup_s3_delete_file( backup_tool *p_tool )
 {
 	boolean b_result    = FALSE;
 	uint retry_attempts = p_tool->retries + 1;
@@ -421,7 +423,7 @@ boolean backup_s3_delete_file( backup_tool *p_tool, const S3 *p_s3 )
 			printf( " Deleting:    %52.52s --> ", s_bucket_and_key );
 		);
 
-		b_result = s3_delete_file( p_tool->p_curl, p_s3, p_tool->s_s3_bucket, p_tool->s_key );
+		b_result = s3_delete_file( p_tool->p_curl, &p_tool->s3, p_tool->s_s3_bucket, p_tool->s_key );
 
 		backup_show_messages( p_tool,
 			if( retry_attempts > 1 )
@@ -440,10 +442,10 @@ boolean backup_s3_delete_file( backup_tool *p_tool, const S3 *p_s3 )
 	return b_result;
 }
 
-boolean backup_s3_list_buckets( backup_tool *p_tool, const S3 *p_s3 )
+boolean backup_s3_list_buckets( backup_tool *p_tool )
 {
 	boolean b_result = FALSE;
-	b_result = s3_list_buckets( p_tool->p_curl, p_s3 );
+	b_result = s3_list_buckets( p_tool->p_curl, &p_tool->s3 );
 
 	return b_result;
 }

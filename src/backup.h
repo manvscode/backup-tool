@@ -1,9 +1,6 @@
 #ifndef _BACKUP_H_
 #define _BACKUP_H_
 
-#include <curl/curl.h>
-#include "s3.h"
-
 
 typedef enum {
 	OP_NOTHING = 0,
@@ -25,9 +22,9 @@ void         backup_set_file           ( backup_tool *p_tool, const char *filena
 void         backup_set_op             ( backup_tool *p_tool, backup_operation op );
 void         backup_set_retries        ( backup_tool *p_tool, uint retries );
 int          backup_help               ( const char *program );
-boolean      backup_s3_put_file        ( backup_tool *p_tool, const S3 *p_s3 );
-boolean      backup_s3_delete_file     ( backup_tool *p_tool, const S3 *p_s3 );
-boolean      backup_s3_list_buckets    ( backup_tool *p_tool, const S3 *p_s3 );
+boolean      backup_s3_put_file        ( backup_tool *p_tool );
+boolean      backup_s3_delete_file     ( backup_tool *p_tool );
+boolean      backup_s3_list_buckets    ( backup_tool *p_tool );
 
 
 
