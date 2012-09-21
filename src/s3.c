@@ -294,6 +294,7 @@ void _print_s3_buckets( FILE *output, xmlDocPtr doc, xmlNodeSetPtr nodes )
 	if( size > 0 )
 	{
 		fprintf( output, "%-20s %-20s\n", "Bucket Name", "Created On" );
+		fprintf( output, "----------------------------------------------\n", "Bucket Name", "Created On" );
 
 		for(i = 0; i < size; ++i)
 		{
