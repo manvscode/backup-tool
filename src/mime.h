@@ -8,13 +8,13 @@
 #endif
 #include "vector.h"
 
-typedef vector MimeTable; /* table of mime records */
+typedef vector mime_table; /* table of mime records */
 
-boolean     mime_create           ( MimeTable *p_table );
-boolean     mime_create_from_file ( MimeTable *p_table, const char *s_mime_file );
-void        mime_destroy          ( MimeTable *p_table );
-void        mime_debug_table      ( const MimeTable *p_table );
-const char* mime_type             ( const MimeTable *p_table, const char *extension );
+boolean     mime_create           ( mime_table *p_table );
+boolean     mime_create_from_file ( mime_table *p_table, const char *s_mime_file );
+void        mime_destroy          ( mime_table *p_table );
+void        mime_debug_table      ( const mime_table *p_table );
+const char* mime_type             ( const mime_table *p_table, const char *extension );
 
 
 

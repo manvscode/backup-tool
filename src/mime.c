@@ -24,13 +24,13 @@ int mime_record_destroy( void *element );
 
 
 
-boolean mime_create( MimeTable *p_table )
+boolean mime_create( mime_table *p_table )
 {
 	assert( p_table );
 	return mime_create_from_file( p_table, "/etc/mime.types" );
 }
 
-boolean mime_create_from_file( MimeTable *p_table, const char *s_mime_file )
+boolean mime_create_from_file( mime_table *p_table, const char *s_mime_file )
 {
 	char buffer[ 128 ];
 	FILE *f = NULL;
@@ -85,7 +85,7 @@ boolean mime_create_from_file( MimeTable *p_table, const char *s_mime_file )
 	return TRUE;	
 }
 
-void mime_destroy( MimeTable *p_table )
+void mime_destroy( mime_table *p_table )
 {
 	vector_destroy( p_table );
 }
@@ -100,7 +100,7 @@ int mime_record_destroy( void *element )
 	return 1;
 }
 
-void mime_debug_table( const MimeTable *p_table )
+void mime_debug_table( const mime_table *p_table )
 {
 	int i;
 	assert( p_table );
@@ -112,10 +112,10 @@ void mime_debug_table( const MimeTable *p_table )
 	}
 
 	printf( "     ===============================================\n" );
-	printf( "                   # of records: %u\n", vector_size(p_table) );
+	printf( "                   # of records: %lu\n", vector_size(p_table) );
 }
 
-const char *mime_type( const MimeTable *p_table, const char *extension )
+const char *mime_type( const mime_table *p_table, const char *extension )
 {
 	MimeRecord key;
 	MimeRecord *p_record = NULL;

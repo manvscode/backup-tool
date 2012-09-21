@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <unistd.h>
@@ -6,6 +7,11 @@
 #include <glib.h>
 #include "backup.h"
 #include "types.h"
+#include "mime.h"
+#include "types.h"
+
+#define BACKUP_CONFIGURATION_FILE         "/etc/backup_tool.conf"
+#define BACKUP_S3_GROUP_NAME              "S3"
 
 static struct option long_options[] = {
 	{ "help",    no_argument,       NULL, 'h' }, // 0
@@ -35,6 +41,29 @@ static char* option_descriptions[] = {
 	NULL
 };
 
+struct tag_backup_tool {
+	boolean b_verbose;
+	boolean b_quiet;
+	backup_operation operation;
+	char s_s3_access_id[ 64 ];
+	char s_s3_secret_key[ 64 ];
+	char s_s3_bucket[ S3_MAX_BUCKET_NAME ];
+	char s_key[ 512 ];
+	char s_filename[ 512 ];
+	uint retries;
+	CURL* p_curl;
+	mime_table mime_table;
+};
+
+#define backup_show_messages( p_tool, messages ) \
+	if( !(p_tool)->b_quiet ) { \
+		messages \
+	}
+
+#define backup_show_messages_if_verbose( p_tool, messages ) \
+	if( !(p_tool)->b_quiet && (p_tool)->b_verbose ) {\
+		messages \
+	}
 
 
 //////////////////////////////////////////////////////
@@ -44,13 +73,13 @@ int main( int argc, char *argv[] )
 {
 	int option_index = 0;
 	int option       = 0;
-	BackupTool backup_tool;
+	backup_tool bt;
 	char configuration_file[ 255 ];
 
 	/* Copy default value for configuration filename */
 	strncpy( configuration_file, BACKUP_CONFIGURATION_FILE, sizeof(configuration_file) );
 
-	backup_initialize( &backup_tool );
+	backup_initialize( &bt );
 
 	/* get all of the command line options */
 	while( (option = getopt_long( argc, argv, "b:k:p:c:r:dlvqh", long_options, &option_index )) >= 0 )
@@ -60,35 +89,35 @@ int main( int argc, char *argv[] )
 			case 0: /* long option */
 				break;
 			case 'b': /* S3 bucket */
-				backup_set_s3_bucket( &backup_tool, optarg );
+				backup_set_s3_bucket( &bt, optarg );
 				break;
 			case 'k': /* S3 key */
-				backup_set_s3_key( &backup_tool, optarg );
+				backup_set_s3_key( &bt, optarg );
 				break;
 			case 'p': /* S3 put */
-				backup_set_op( &backup_tool, OP_S3_PUT );
-				backup_set_file( &backup_tool, optarg );
+				backup_set_op( &bt, OP_S3_PUT );
+				backup_set_file( &bt, optarg );
 				break;
 			case 'c': /* configuration file */
 				strncpy( configuration_file, optarg, sizeof(configuration_file) );
 				break;
 			case 'r':
-				backup_set_retries( &backup_tool, atoi(optarg) );
+				backup_set_retries( &bt, atoi(optarg) );
 				break;
 			case 'd': /* S3 delete */
-				backup_set_op( &backup_tool, OP_S3_DELETE );
+				backup_set_op( &bt, OP_S3_DELETE );
 				break;
 			case 'l': /* S3 list */
-				backup_set_op( &backup_tool, OP_S3_LIST );
+				backup_set_op( &bt, OP_S3_LIST );
 				break;
 			case 'v': /* Verbose */
-				backup_set_verbose( &backup_tool, TRUE );
+				backup_set_verbose( &bt, TRUE );
 				break;
 			case 'q': /* Quiet */
-				backup_set_quiet( &backup_tool, TRUE );
+				backup_set_quiet( &bt, TRUE );
 				break;
 			case 'h': /* Help */
-				backup_deinitialize( &backup_tool );
+				backup_deinitialize( &bt );
 				return backup_help( argv[ 0 ] );
 				break;
 			default:
@@ -96,27 +125,27 @@ int main( int argc, char *argv[] )
 		}
 	}
 	
-	backup_show_messages_if_verbose( &backup_tool, 
+	backup_show_messages_if_verbose( &bt, 
 		printf( "Using %s...\n", configuration_file );
 	);
 	boolean b_result = FALSE;
 
 	/* Read in configuration from file */
-	if( backup_read_configuration( &backup_tool, configuration_file ) )
+	if( backup_read_configuration( &bt, configuration_file ) )
 	{
 		S3 s3;
-		s3_initialize( &s3, backup_tool.s_s3_access_id, backup_tool.s_s3_secret_key, backup_tool.b_verbose );
+		s3_initialize( &s3, bt.s_s3_access_id, bt.s_s3_secret_key, bt.b_verbose );
 
-		switch( backup_tool.operation )
+		switch( bt.operation )
 		{
 			case OP_S3_PUT:
-				b_result = backup_s3_put_file( &backup_tool, &s3 );
+				b_result = backup_s3_put_file( &bt, &s3 );
 				break;
 			case OP_S3_DELETE:
-				b_result = backup_s3_delete_file( &backup_tool, &s3 );
+				b_result = backup_s3_delete_file( &bt, &s3 );
 				break;
 			case OP_S3_LIST:
-				b_result = backup_s3_list_buckets( &backup_tool, &s3 );
+				b_result = backup_s3_list_buckets( &bt, &s3 );
 				break;
 			case OP_NOTHING:
 			default:
@@ -126,12 +155,12 @@ int main( int argc, char *argv[] )
 		s3_deinitialize( );	
 	}
 
-	backup_deinitialize( &backup_tool );
+	backup_deinitialize( &bt );
 
 	return b_result ? 0 : 2;
 }
 
-boolean backup_initialize( BackupTool *p_tool )
+boolean backup_initialize( backup_tool *p_tool )
 {
 	assert( p_tool );
 	curl_global_init( CURL_GLOBAL_ALL );
@@ -163,7 +192,7 @@ boolean backup_initialize( BackupTool *p_tool )
 	return TRUE;
 }
 
-boolean backup_deinitialize( BackupTool *p_tool )
+boolean backup_deinitialize( backup_tool *p_tool )
 {
 	assert( p_tool );
 	curl_easy_cleanup( p_tool->p_curl );
@@ -183,7 +212,7 @@ boolean backup_deinitialize( BackupTool *p_tool )
 	return TRUE;
 }
 
-boolean backup_read_configuration( BackupTool *p_tool, const char *configuration_file )
+boolean backup_read_configuration( backup_tool *p_tool, const char *configuration_file )
 {
 	boolean b_result = TRUE;
 	GKeyFile *p_configuration_file = g_key_file_new( );
@@ -235,7 +264,7 @@ boolean backup_read_configuration( BackupTool *p_tool, const char *configuration
 	return b_result;
 }
 
-void backup_set_s3_bucket( BackupTool *p_tool, const char *bucket )
+void backup_set_s3_bucket( backup_tool *p_tool, const char *bucket )
 {
 	assert( p_tool );
 	assert( bucket );
@@ -243,7 +272,7 @@ void backup_set_s3_bucket( BackupTool *p_tool, const char *bucket )
 	p_tool->s_s3_bucket[ S3_MAX_BUCKET_NAME - 1 ] = '\0';
 }
 
-void backup_set_s3_key( BackupTool *p_tool, const char *key )
+void backup_set_s3_key( backup_tool *p_tool, const char *key )
 {
 	assert( p_tool );
 	assert( key && *key );
@@ -251,7 +280,7 @@ void backup_set_s3_key( BackupTool *p_tool, const char *key )
 	p_tool->s_key[ sizeof(p_tool->s_key) - 1 ] = '\0';
 }
 
-void backup_set_file( BackupTool *p_tool, const char *filename )
+void backup_set_file( backup_tool *p_tool, const char *filename )
 {
 	assert( p_tool );
 	assert( filename && *filename );
@@ -259,13 +288,19 @@ void backup_set_file( BackupTool *p_tool, const char *filename )
 	p_tool->s_filename[ sizeof(p_tool->s_filename) - 1 ] = '\0';
 }
 
-void backup_set_verbose( BackupTool *p_tool, boolean verbose )
+void backup_set_op( backup_tool *p_tool, backup_operation op )
+{
+	assert( p_tool );
+	p_tool->operation = op;	
+}
+
+void backup_set_verbose( backup_tool *p_tool, boolean verbose )
 {
 	assert( p_tool );
 	p_tool->b_verbose = verbose;
 }
 
-void backup_set_quiet( BackupTool *p_tool, boolean quiet )
+void backup_set_quiet( backup_tool *p_tool, boolean quiet )
 {
 	assert( p_tool );
 
@@ -277,7 +312,7 @@ void backup_set_quiet( BackupTool *p_tool, boolean quiet )
 	p_tool->b_quiet = quiet;
 }
 
-void backup_set_retries( BackupTool *p_tool, uint retries )
+void backup_set_retries( backup_tool *p_tool, uint retries )
 {
 	assert( p_tool );
 	assert( retries >= 0 );
@@ -301,10 +336,11 @@ int backup_help( const char *program )
 	return 1;
 }
 
-boolean backup_s3_put_file( BackupTool *p_tool, const S3 *p_s3 )
+boolean backup_s3_put_file( backup_tool *p_tool, const S3 *p_s3 )
 {
 	boolean b_result        = FALSE;
-	const char *extension   = strrchr( p_tool->s_filename, '.' ) + 1;
+	const char *p_dot       = strrchr( p_tool->s_filename, '.' );
+	const char *extension   = p_dot ? p_dot + 1 : "txt";
 	const char *s_mime_type = mime_type( &p_tool->mime_table, extension );
 	uint retry_attempts     = p_tool->retries + 1;
 
@@ -337,7 +373,7 @@ boolean backup_s3_put_file( BackupTool *p_tool, const S3 *p_s3 )
 	return b_result;
 }
 
-boolean backup_s3_delete_file( BackupTool *p_tool, const S3 *p_s3 )
+boolean backup_s3_delete_file( backup_tool *p_tool, const S3 *p_s3 )
 {
 	boolean b_result    = FALSE;
 	uint retry_attempts = p_tool->retries + 1;
@@ -369,11 +405,9 @@ boolean backup_s3_delete_file( BackupTool *p_tool, const S3 *p_s3 )
 	return b_result;
 }
 
-boolean backup_s3_list_buckets( BackupTool *p_tool, const S3 *p_s3 )
+boolean backup_s3_list_buckets( backup_tool *p_tool, const S3 *p_s3 )
 {
 	boolean b_result = FALSE;
-
-
 	b_result = s3_list_buckets( p_tool->p_curl, p_s3 );
 
 	return b_result;
