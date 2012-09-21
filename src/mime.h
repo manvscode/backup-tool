@@ -18,4 +18,4 @@ const char* mime_type             ( const mime_table *p_table, const char *exten
 
 
 
-#endif
+#endif /* _MIME_H_ */

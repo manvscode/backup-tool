@@ -6,10 +6,10 @@
 #include "mime.h"
 
 
-typedef struct tagMimeRecord {
+typedef struct tag_mime_record {
 	char *mime_type;
 	char *extension;
-} MimeRecord;
+} mime_record;
 
 int mime_record_compare( const void *a, const void *b );
 
@@ -37,7 +37,7 @@ boolean mime_create_from_file( mime_table *p_table, const char *s_mime_file )
 
 	assert( p_table );
 
-	vector_create( p_table, sizeof(MimeRecord), mime_record_destroy );
+	vector_create( p_table, sizeof(mime_record), mime_record_destroy );
 
 	f = fopen( s_mime_file, "rb" );
 
@@ -66,7 +66,7 @@ boolean mime_create_from_file( mime_table *p_table, const char *s_mime_file )
 			}
 			else
 			{
-				MimeRecord record;
+				mime_record record;
 
 				record.mime_type = strdup( mime_type );
 				record.extension = strdup( token );
@@ -80,7 +80,7 @@ boolean mime_create_from_file( mime_table *p_table, const char *s_mime_file )
 	}
 
 	/* sort the table */
-	qsort( vector_array(p_table), vector_size(p_table), sizeof(MimeRecord), mime_record_compare );
+	qsort( vector_array(p_table), vector_size(p_table), sizeof(mime_record), mime_record_compare );
 
 	return TRUE;	
 }
@@ -94,7 +94,7 @@ int mime_record_destroy( void *element )
 {
 	assert( element );
 
-	MimeRecord *p_record = (MimeRecord *) element;
+	mime_record *p_record = (mime_record *) element;
 	free( p_record->extension );
 	free( p_record->mime_type );
 	return 1;
@@ -107,7 +107,7 @@ void mime_debug_table( const mime_table *p_table )
 
 	for( i = 0; i < vector_size(p_table); i++ )
 	{
-		MimeRecord *p_record = (MimeRecord *) vector_element_at( p_table, i );
+		mime_record *p_record = (mime_record *) vector_element_at( p_table, i );
 		printf( "%20s --> %s\n", p_record->extension, p_record->mime_type );
 	}
 
@@ -117,13 +117,13 @@ void mime_debug_table( const mime_table *p_table )
 
 const char *mime_type( const mime_table *p_table, const char *extension )
 {
-	MimeRecord key;
-	MimeRecord *p_record = NULL;
+	mime_record key;
+	mime_record *p_record = NULL;
 
 	assert( p_table );
 	key.extension = (char *) extension;
 
-	p_record = (MimeRecord *) bsearch( &key, vector_array(p_table), vector_size(p_table), sizeof(MimeRecord), mime_record_compare );
+	p_record = (mime_record *) bsearch( &key, vector_array(p_table), vector_size(p_table), sizeof(mime_record), mime_record_compare );
 
 	return p_record ? (const char *) p_record->mime_type : NULL;
 }
@@ -131,7 +131,7 @@ const char *mime_type( const mime_table *p_table, const char *extension )
 int mime_record_compare( const void *a, const void *b )
 {
 	assert( a && b );
-	return strcasecmp( ((MimeRecord*) a)->extension, ((MimeRecord*) b)->extension );
+	return strcasecmp( ((mime_record*) a)->extension, ((mime_record*) b)->extension );
 }
 
 
