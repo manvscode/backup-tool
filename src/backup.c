@@ -20,10 +20,10 @@ static struct option long_options[] = {
 	{ "verbose", no_argument,       NULL, 'v' },
 	{ "quiet",   no_argument,       NULL, 'q' },
 	{ "config",  required_argument, NULL, 'c' }, // 3
-	{ "retries", required_argument, NULL, 'r' }, 
+	{ "retries", required_argument, NULL, 'r' },
 	{ "bucket",  required_argument, NULL, 'b' },
 	{ "key",     required_argument, NULL, 'k' }, // 6
-	{ "list",    no_argument,       NULL, 'l' }, 
+	{ "list",    no_argument,       NULL, 'l' },
 	{ "put",     required_argument, NULL, 'p' },
 	{ "delete",  no_argument,       NULL, 'd' }, // 9
 	{ NULL, 0, NULL, 0 }
@@ -34,7 +34,7 @@ static char* option_descriptions[] = {
 	"To enable the printing of extra messages.",
 	"To disable the printing of all messages.",
 	"Specify a configuration file.",  // 3
-	"The number of times to retry in case of an error.", 
+	"The number of times to retry in case of an error.",
 	"The S3 bucket to use.",
 	"The S3 key to use.", // 6
 	"To list all of the buckets.",
@@ -132,8 +132,8 @@ int main( int argc, char *argv[] )
 				break;
 		}
 	}
-	
-	backup_show_messages_if_verbose( p_bt, 
+
+	backup_show_messages_if_verbose( p_bt,
 		printf( "Using %s...\n", configuration_file );
 	);
 	boolean b_result = FALSE;
@@ -205,23 +205,23 @@ boolean backup_initialize( backup_tool *p_tool )
 	p_tool->s_key[ 0 ]       = '\0';
 	p_tool->retries          = 1;
 	p_tool->p_curl           = curl_easy_init( );
-	
+
 	if( !p_tool->p_curl )
 	{
 		backup_show_messages( p_tool,
 			fprintf( stderr, "Unable to create cURL handle.\n" );
 		);
 		return FALSE;
-	}				
+	}
 
 	/* Set common options */
-	#ifdef _CURL_VERBOSE					
-		curl_easy_setopt( p_tool->p_curl, CURLOPT_VERBOSE, 1 );						
-	#endif						
+	#ifdef _CURL_VERBOSE
+		curl_easy_setopt( p_tool->p_curl, CURLOPT_VERBOSE, 1 );
+	#endif
 
 	/* this allocates memory */
 	mime_create( &p_tool->mime_table );
-		
+
 	s3_initialize( &s3, bt.s_s3_access_id, bt.s_s3_secret_key, bt.b_verbose );
 
 	return TRUE;
@@ -233,19 +233,19 @@ boolean backup_deinitialize( backup_tool *p_tool )
 	curl_easy_cleanup( p_tool->p_curl );
 	curl_global_cleanup( );
 
-	#ifdef _DEBUG					
+	#ifdef _DEBUG
 	p_tool->b_verbose        = FALSE;
 	p_tool->b_quiet          = FALSE;
 	p_tool->operation        = OP_NOTHING;
 	p_tool->s_s3_bucket[ 0 ] = '\0';
 	p_tool->s_key[ 0 ]       = '\0';
 	p_tool->p_curl           = NULL;
-	#endif						
+	#endif
 
 	mime_destroy( &p_tool->mime_table );
-		
-	s3_deinitialize( );	
-	
+
+	s3_deinitialize( );
+
 	return TRUE;
 }
 
@@ -255,7 +255,7 @@ boolean backup_read_configuration( backup_tool *p_tool, const char *configuratio
 	GKeyFile *p_configuration_file = g_key_file_new( );
 
 	b_result = g_key_file_load_from_file( p_configuration_file, configuration_file, G_KEY_FILE_NONE, NULL );
-	
+
 	if( !b_result )
 	{
 		backup_show_messages( p_tool,
@@ -297,7 +297,7 @@ boolean backup_read_configuration( backup_tool *p_tool, const char *configuratio
 	}
 
 	g_key_file_free( p_configuration_file );
-	
+
 	return b_result;
 }
 
@@ -305,7 +305,7 @@ void backup_set_s3_bucket( backup_tool *p_tool, const char *bucket )
 {
 	assert( p_tool );
 	assert( bucket );
-	strncpy( p_tool->s_s3_bucket, bucket, sizeof(p_tool->s_s3_bucket) );	
+	strncpy( p_tool->s_s3_bucket, bucket, sizeof(p_tool->s_s3_bucket) );
 	p_tool->s_s3_bucket[ S3_MAX_BUCKET_NAME - 1 ] = '\0';
 }
 
@@ -313,7 +313,7 @@ void backup_set_s3_key( backup_tool *p_tool, const char *key )
 {
 	assert( p_tool );
 	assert( key && *key );
-	strncpy( p_tool->s_key, key, sizeof(p_tool->s_key) );	
+	strncpy( p_tool->s_key, key, sizeof(p_tool->s_key) );
 	p_tool->s_key[ sizeof(p_tool->s_key) - 1 ] = '\0';
 }
 
@@ -321,14 +321,14 @@ void backup_set_file( backup_tool *p_tool, const char *filename )
 {
 	assert( p_tool );
 	assert( filename && *filename );
-	strncpy( p_tool->s_filename, filename, sizeof(p_tool->s_filename) );	
+	strncpy( p_tool->s_filename, filename, sizeof(p_tool->s_filename) );
 	p_tool->s_filename[ sizeof(p_tool->s_filename) - 1 ] = '\0';
 }
 
 void backup_set_op( backup_tool *p_tool, backup_operation op )
 {
 	assert( p_tool );
-	p_tool->operation = op;	
+	p_tool->operation = op;
 }
 
 void backup_set_verbose( backup_tool *p_tool, boolean verbose )
@@ -435,7 +435,7 @@ boolean backup_s3_delete_file( backup_tool *p_tool )
 				printf( "%s\n", b_result ? "SUCCESS" : "FAILED" );
 			}
 		);
-		
+
 		retry_attempts--;
 	}
 
